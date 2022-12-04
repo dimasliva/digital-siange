@@ -1,9 +1,0 @@
-bottle
-requests
-pylint
-bsddb3
-zmq
-MySQLdb
-Pillow
-bottle_mysql
-cython

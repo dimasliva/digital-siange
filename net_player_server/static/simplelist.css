@@ -1,0 +1,35 @@
+.list-item {
+	display: flex;
+	align-items: center;
+	padding: 5px 10px 5px 5px;
+	box-sizing: border-box;
+	border-bottom: 1px solid #DDD;
+}
+.list-item-caption {
+	flex-grow: 1;
+	padding: 10px;
+	min-height: 56px;
+}
+.list-item-buttons > button {
+	margin-left: 5px;
+	padding: 5px 15px;
+	background: #EEE;
+	color: #111;
+	padding: 6px;
+	border: 0;
+	border-radius: 4px;
+	font-family: inherit;
+}
+.list-item-buttons > button > img {
+	vertical-align: middle;
+}
+.list-item-buttons > button:hover {
+	background: #CCC;
+}
+.list-item-icon {
+	width: 96px;
+	align-self: stretch;
+	background-position: center center;
+	background-repeat: no-repeat;
+	background-size: auto 48px;
+}

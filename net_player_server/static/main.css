@@ -1,0 +1,616 @@
+* {
+	box-sizing: border-box;
+}
+html, body {
+	height: 100%;
+}
+body {
+	font-family: "Golos Text", "Open Sans", "Segoe UI", "Liberation Sans", sans-serif;
+	font-size: 11pt;
+	margin: 0 0;
+}
+.btn {
+	font: 400 10pt "Golos Text", "Open Sans", "Segoe UI", "Liberation Sans", sans-serif;
+    background: #888;
+    color: #fff;
+    border: 0;
+    border-radius: 3px;
+    
+	padding: 5px 10px;
+	vertical-align: bottom;
+	min-width: 120px;
+	cursor: pointer;
+    display: inline-block;
+    text-decoration: none;
+}
+.btn:active {
+	background: #688aac;
+}
+.btn:hover {
+	background: #555;
+}
+.btn-primary {
+	background: #6c8;
+}
+.btn-primary:hover {
+	background: #4a6;
+}
+/* Main layout blox */
+#header {
+	background-color: #222;
+	color: #FFF;
+	padding: 22px 16px;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	box-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+	height: 64px;
+	box-sizing: border-box;
+}
+#sidebar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 240px;
+	margin: 64px 0 50px;
+	padding: 16px;
+	box-sizing: border-box;
+	background-color: #CCC;
+	box-shadow: inset -2px 0 2px -2px rgba(0,0,0,0.6);
+}
+#wrapper {
+	box-sizing: border-box;
+	/* background-color: #CCC; */
+	min-height: 100%;
+	padding: 64px 0 50px 240px;
+	width: 100%;
+}
+#footer {
+	background-color: #C64;
+	color: #FFF;
+	padding: 16px;
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	box-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+	background-image: url('/static/mmvs-mono.png');
+	background-position: 64px center;
+	background-repeat: no-repeat;
+	background-size: auto 80%;
+	height: 50px;
+}
+#header_right, #footer_right {
+	float: right;
+}
+/* other */
+#header_right {
+	font-size: 9pt;
+	margin-top: -6px;
+	margin-bottom: -6px;
+}
+#header_right a {
+	color: #c60;
+	display: block;
+}
+#bd  {
+	margin: 16px;
+	min-height: 100%;
+	/* border: 1px dashed #000; */
+}
+#header button {
+	background: transparent;
+	box-shadow: none;
+	color: inherit;
+	border: 0;
+	font: inherit;
+	margin: 0;
+	padding: 0 16px;
+	vertical-align: middle;
+}
+#sidebar > a {
+	display: block;
+	color: inherit;
+	text-decoration: none;
+	padding: 8px 0;
+}
+#sidebar > a:hover {
+	text-decoration: underline;
+}
+#sidebar > a.active {
+	font-weight: bold;
+}
+#footer_right canvas {
+    box-shadow: 0 0 0 1px #000;
+	vertical-align: bottom;
+}
+/**  **/
+/*
+#sidebarSwitch {
+	display: inline-block;
+	margin: -2px 16px 0px 8px;
+	cursor: default;
+}
+#sidebarSwitch:active {
+	color: #c60;
+}
+*/
+/** Editro **/
+td {
+	vertical-align: top;
+}
+.microdialog {
+	position: fixed;
+	width: 480px;
+	/* margin-left: -160px; */
+	top: 96px;
+	left: 50%;
+	background: #EFEFEF;
+	border: 1px solid #080808;
+	display: none;
+	box-sizing: border-box;
+	box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+	z-index: 101;
+}
+.microdialog .listview, .dialog .listview {
+	max-height: 50vh;
+	background-color: #FFF;
+	padding: 4px;
+	border: 1px solid #DEDEDE;
+	display: block;
+}
+.dialog {
+	position: fixed;
+	top: 64px;
+	left: 50%;
+	width: 960px;
+	/* margin-left: -480px; */
+	background: #EFEFEF;
+	border: 1px solid #080808;
+	display: none;
+	box-sizing: border-box;
+	box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+	z-index: 101;
+}
+.dialog-header {
+    background: #555;
+    color: #FFF;
+    margin: 0;
+    padding: 10px;
+    font-size: 1.3em;
+    font-weight: bold;
+}
+.dialog-body {
+	padding: 5px;
+}
+.dialog-prompt {
+    margin: 0;
+    border: 1px solid #CCC;
+    padding: 10px;
+    font-size: 1.2em;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+.dialog-footer {
+    margin: 0 5px;
+    padding: 10px;
+    text-align: right;
+    border-top: 1px solid #CCC;
+}
+.modalfog {
+	z-index: 99;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.75);
+	display: none;
+}
+.toolbar {
+	background: #a4a7a9;
+	color: #FFF;
+	padding: 8px 8px;
+	border-bottom: 1px solid #CCC;
+}
+.toolbar-bottom {
+	background-color: #AAA;
+	position: fixed;
+	bottom: 0;
+	width: 100%;
+}
+.helpblock {
+	position: absolute;
+    background: #FD8;
+    border: 1px solid #CA5;
+    padding: 0 8px;
+    right: 8px;
+    top: 7em;
+    width: 32%;
+}
+.helpblock p {
+    padding: 0;
+    margin: 4px 0;
+}
+.dialog-body input[type=text], .dialog-body input[type=password], .dialog-body select {
+	display: block;
+	padding: 6px;
+	margin: 6px 0;
+	width: 100%;
+	box-sizing: border-box;
+    background: #FFF;
+    border: 1px solid #909090;
+}
+#statusLine {
+	display: inline-block;
+	/*
+	 * padding: 6px 10px;
+	 */
+	vertical-align: middle;
+	font-size: 9pt;
+	margin: 8px 16px;
+}
+.workplace {
+	padding: 6px;
+}
+.details {
+	font-size: 0.8em;
+}
+.basic-container {
+	padding: 8px;
+}
+/** Listview display options **/
+.listview {
+	width: 100%;
+	display: inline-block;
+	/*
+	height: 240px;
+	background: #FFF;
+	border: 1px solid #AAA;
+	*/
+	overflow-x: hidden;
+}
+.listview-item {
+	padding: 8px;
+	cursor: default;
+	background-repeat: no-repeat;
+	background-position: 8px center;
+	padding: 10px 12px 10px 36px;
+	/*display: flex;
+	justify-content: space-between;*/
+}
+.listview-nested {
+	display: inline-block;
+	padding: 0 16px;
+	min-width: 256px;
+}
+.listview-nested:first-child {
+	font-weight: bold;
+	width: 50%;
+}
+.listview-hilite {
+	border-radius: 4px;
+	background-color: #39C;
+	color: #fff;
+}
+.listview-item-btn {
+	border: 0;
+	background: transparent;
+	font-size: 14pt;
+	padding: 5px 10px;
+	margin-top: -10px;
+	color: inherit;
+}
+.listview-item-btn:active {
+	color: #444;
+}
+.listview-hilite .listview-item-btn:active {
+	color: #C60;
+}
+.icon-video {
+	background-image: url('16/video-x-generic.png');
+	background-size: 22px;
+}
+.icon-image {
+	background-image: url('16/image-x-generic.png');
+	background-size: 22px;
+}
+.icon-schedule {
+	background-image: url('16/office-calendar.png');
+	background-size: 22px;
+}
+.icon-group {
+	background-image: url('16/group.png');
+	background-size: 22px;
+}
+.icon-player {
+	background-image: url('16/video-display.png');
+	background-size: 22px;
+}
+.icon-web {
+	background-image: url('16/text-html.png');
+	background-size: 22px;
+}
+.icon-stream {
+	background-image: url('16/stream.png');
+	background-size: 22px;
+}
+.icon-document {
+    background-image: url('16/office-spreadsheet.png');
+    background-size: 22px;
+}
+.icon-sleep {
+	background-image: url('16/display-sleep.png');
+	background-size: 22px;
+}
+.icon-user {
+	background-image: url('16/user.png');
+	background-size: 22px;
+}
+/** editor workarounds **/
+#restList, #playList {
+	background: #FFF;
+	border: 1px solid #AAA;
+	overflow-y: scroll;
+}
+#filesList .listview-item {
+	display: inline-block;
+	width: 192px;
+	font-size: 10pt;
+	white-space: nowrap;
+	overflow: hidden;
+	padding: 110px 16px 16px 16px;
+	background-position: center 16px;
+	text-align: center;
+}
+#taskFilesBox, #taskUrlBox, #taskFilesBox table {
+	width: 100%;
+}
+/** **/
+#bd td {
+	padding: 6px;
+}
+.toolbarheader {
+	display: inline-block;
+	vertical-align: top;
+    display: inline-block;
+    margin-left: 58px;
+    margin-bottom: 10px;
+		font-size: 34px;
+		font-weight: bold;
+}
+.toolbarheader.content {
+	margin-left: 20px;
+}
+
+.vbox50 {
+	display: inline-block;
+	width: 50%;
+	box-sizing: border-box;
+	padding: 4px;
+}
+
+.redbutton {
+	background-color: #F43;
+	border-color: #B10;
+}
+
+.uploaderHidden {
+	display: none !important;
+}
+.uploaderButton {
+	display: block;
+	margin: 4px 0;
+	text-align: center;
+}
+#uploadList .listview-item {
+	font-size: 10pt;
+}
+
+.closebtn {
+    background: transparent;
+    border: none;
+    float: right;
+    color: #fff;
+    margin: 0px 8px;
+    cursor: pointer;
+}
+.closebtn:hover {
+    color: #FF9988;
+}
+
+/** task editor **/
+
+.taskedit__options {
+    display: flex;
+    width: 100%;
+}
+.taskedit__options > .column {
+	flex-grow: 1;
+	flex-shrink: 1;
+	min-width: 1px;
+	width: 25%;
+	padding: 10px;
+}
+.taskedit__options > .column > .column-header {
+	font-size: 10pt;
+	font-weight: bold;
+	padding: 5px;
+}
+
+.taskedit__options > .column > input,
+.taskedit__options > .column > select {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 5px;
+	height: 40px;
+}
+
+.taskeditrun__mode {
+    flex-grow: 1;
+}
+.taskeditrun__mode label {
+    display: block;
+}
+.taskeditrun__setup {
+    flex-grow: 2;
+}
+.taskeditrun__picker {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+}
+.taskeditrun__picker label {
+    width: 200px;
+}
+.taskeditrun__picker input {
+    flex-grow: 1;
+}
+
+.dialog-input {
+    display: block;
+    box-sizing: border-box;
+    padding: 2px;
+    font-size: 14pt;
+    border: 1px solid #BBB;
+    background: #FFF;
+    flex: 1;
+}
+.fx-container {
+    display: flex;
+}
+
+.row {
+    display: flex;
+}
+.row > .col {
+    padding: 5px 0;
+}
+.row > .col:nth-child(1) {
+    width: 320px;
+}
+
+.microdialog_section {
+    padding: 10px 5px;
+    font-weight: bold;
+}
+.microdialog_row {
+    padding: 0px 10px 10px;
+}
+
+.statusbar {
+	padding: 8px 12px;
+	background-color: #BCD;
+	display: none;
+}
+
+.is-hidden {
+	display: none !important;
+}
+
+.no-items {
+	font-style: italic;
+	color: #AAA;
+}
+
+#taskFilesBox {
+	display: flex;
+	align-items: stretch;
+	flex-grow: 1;
+	flex-shrink: 1;
+	overflow: hidden;
+}
+#taskFilesBox > div {
+	flex-grow: 1;
+	flex-basis: 50%;
+	margin: 0 5px;
+	overflow: scroll;
+}
+
+.player-status-offline {
+	opacity: .5;
+}
+
+.player-status-deadline {
+	background-color: #FCB;
+}
+
+
+/** Mobile devices **/
+@media only screen and (max-device-width: 640px) {
+	#wrapper {
+		padding-left: 0px;
+	}
+	#sidebar {
+		display: none;
+	}
+	#header b {
+		display: none;
+	}
+	#statusLine {
+		display: block;
+	}
+	.dialog, .microdialog {
+		top: 50px;
+		left: 0;
+		right: 0;
+		margin: 0;
+	}
+	.dialog {
+		margin-bottom: 50px; /* dull workaround */
+	}
+	.dialog td {
+		display: block;
+		width: 100%;
+	}
+	#bd .toolbar {
+		height: 2.5em;
+		overflow: hidden;
+	}
+	#bd .toolbar:hover {
+		padding-top: 8px;
+		height: auto;
+	}
+	#bd .toolbar button {
+		width: 100%;
+		margin: 2px 0;
+		padding: 4px;
+	}
+	.helpblock {
+		position: static;
+		width: 100%;
+		height: 3em;
+		margin: 4px 0;
+		overflow: hidden;
+	}
+	.helpblock:active {
+		height: auto;
+	}
+	.toolbarheader {
+		height: 2em;
+		margin: 2px;
+	}
+}
+.btn-green {
+	background-color: #2cad2c;
+	font-size: 16px;
+	padding: 8px 0;
+	border-radius: 6px;
+	width: 160px;
+}
+.toolbar.play_list {
+	display: flex;
+	flex-direction: column;
+	height: 99px;
+} 
+#diskStatus {
+	position: absolute;
+	bottom: 20px;
+}
+.layout-content-wrapper {
+	position: relative;
+	height: 100%;
+}

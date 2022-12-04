@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ "$(id -u)" != "0" ]
+then
+	echo "Must be root"
+fi
+
+apt-get install build-essential make cython3 && \
+cd /usr/local/dsserver && \
+make && \
+make clean && \
+rm controllers.py && \
+rm convert.py && \
+rm datalayer.py && \
+rm distlayer.py

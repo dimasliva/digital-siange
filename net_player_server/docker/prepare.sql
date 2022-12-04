@@ -1,0 +1,4 @@
+CREATE DATABASE IF NOT EXISTS dsserver;
+CREATE USER IF NOT EXISTS 'dsserver'@'localhost' IDENTIFIED BY "D!git4SGH9000";
+GRANT ALL PRIVILEGES ON `dsserver`.* TO 'dsserver'@'localhost';
+FLUSH PRIVILEGES;

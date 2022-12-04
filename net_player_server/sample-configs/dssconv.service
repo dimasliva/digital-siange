@@ -1,0 +1,12 @@
+[Unit]
+Description=Digital signage conversion service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/dsserver
+ExecStart=/usr/bin/python3 start_conv.py
+
+[Install]
+WantedBy=multi-user.target
+

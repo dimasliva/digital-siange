@@ -1,0 +1,13 @@
+[Unit]
+Description=AntMedia
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ant-media-server
+ExecStart=/bin/bash /opt/ant-media-server/start.sh
+ExecStop=/bin/bash /opt/ant-media-server/shutdown.sh
+
+[Install]
+WantedBy=multi-user.target
+

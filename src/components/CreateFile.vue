@@ -14,7 +14,9 @@
 						</li><li>Документы в форматах: pdf, doc, docx, rtf, odt, ppt, pptx, odp, xls, xlsx, ods
 					  </li>
           </ul>
-          Возможен выбор для загрузки нескольких файлов одновременно
+          <b>
+            Возможен выбор для загрузки нескольких файлов одновременно
+          </b>
 				</div>
           <form 
             :class="{'dragged': isDragging}"
@@ -36,6 +38,9 @@
           </form>
         </div>
         <div class="footer">
+          <div v-if="loading" class="loader">
+            <span>{{loadingText}}</span>
+          </div>
           <button @click="saveFile" class="btn">Загрузить</button>
         </div>
       </div>
@@ -51,18 +56,44 @@ export default {
     openList: false,
     isDragging: false,
     name: "",
+    loadingText: "",
+    loadText: "Загрузка...",
     files: [],
     uploaded_name: [],
     uploaded_file: [],
     formData: new FormData(),
+    isLoading: false,
+    count_slice: 8,
+    intervalLoader: false,
   }),
   props: {
     title: String,
     folder: String,
+    loading: Boolean,
   },
   mounted() {
+    this.loadingText = this.loadText.slice(0, this.loadText.length)
+    this.intervalLoader = setInterval(() => {
+      console.log('loading', this.loading)
+      this.startLoading()
+    }, 1000);
+  },
+  unmounted() {
+    clearInterval(this.intervalLoader)
   },
   methods: {
+    startLoading() {
+      this.loadingText = this.loadText.slice(0, this.count_slice)
+      this.count_slice += 1
+      if(this.count_slice === 12) {
+        this.count_slice = 8
+      }
+    },
+    saveFile() {
+      this.$emit('savefile', this.formData)
+      this.uploaded_name = []
+      this.formData = new FormData()
+    },
     onChange() {
       this.files = [...this.$refs.file.files];
     },
@@ -82,7 +113,9 @@ export default {
       for (let index = 0; index < e.dataTransfer.files.length; index++) {
         this.uploaded_name.unshift(e.dataTransfer.files[index].name)
         this.formData.append("upfile", e.dataTransfer.files[index]);
-        this.formData.append("folder", this.folder);
+        if(this.folder) {
+          this.formData.append("folder", this.folder);
+        }
       }
       this.onChange();
       this.isDragging = false;
@@ -92,13 +125,10 @@ export default {
       for (let index = 0; index < files.length; index++) {
         this.uploaded_name.unshift(files[index].name)
         this.formData.append("upfile", files[index]);
-        this.formData.append("folder", this.folder);
+        if(this.folder) {
+          this.formData.append("folder", this.folder);
+        }
       }
-    },
-    saveFile() {
-      this.$emit('savefile', this.formData)
-      this.uploaded_name = []
-      this.formData = new FormData()
     },
     closeModal() {
       this.uploaded_name = []
@@ -171,7 +201,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-y: scroll;
+    overflow-y: hidden;
   }
   .modal .head {
     background: #555;
@@ -187,6 +217,7 @@ export default {
     text-align: right;
     border-top: 1px solid #CCC;
     background-color: #efefef;
+    position: relative;
   }
   .modal .content {
     width: 100%;
@@ -231,5 +262,15 @@ export default {
     cursor: pointer;
     display: inline-block;
     text-decoration: none;
+}
+.loader {
+  position: absolute;
+  right: 45%;
+  bottom: 28%;
+  text-align: left;
+  display: flex;
+  justify-content: flex-start;
+  align-content: flex-start;
+  width: 80px;
 }
 </style>

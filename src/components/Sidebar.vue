@@ -1,31 +1,47 @@
 <template>
 	<div class="sidebar" :class="{toggled}">
+    <AreYouSureModal v-if="openWarning" :routename="routeName" :warningtext="'Вы уходите со страницы, не сохранив плейлист.'" @savemodal="nextPage" @closemodal="openWarning = false"/>
 		<div class="head">
 			<b>DIGITAL SIGNAGE SERVER</b>
       <button id="sidebarSwitch" @click="toggleSidebar">☰</button>
 		</div>
 		<div class="content" :class="{toggled}">
       <div class="sidebar-menu">
-				<router-link :class="{'active': $route.name === 'PlayLists'}" :to="{name: 'PlayLists'}">
+        <div class="a"
+          @click="goRoute('Players')"
+          :class="{'active': $route.name === 'Players', 'disabled': $route.name === 'Login'}"
+        >
 					<img src="@/assets/imgs/sidebar/menuplaceholder.svg">
 					<div>Воспроизведение</div>
-				</router-link>
-				<router-link :class="{'active': $route.name === 'Devices'}" :to="{name: 'Devices'}">
+        </div>
+        <div class="a"
+          @click="goRoute('Devices')"
+         :class="{'active': $route.name === 'Devices' || $route.name === 'Player', 'disabled': $route.name === 'Login'}"
+        >
 					<img src="@/assets/imgs/sidebar/menuplaceholder.svg">
 					<div>Устройства</div>
-				</router-link>
-				<router-link :class="{'active': $route.name === 'Lists' || $route.name === 'ListEdit'}" :to="{name: 'Lists'}">
+        </div>
+        <div class="a"
+          @click="goRoute('Playlists')"
+          :class="{'active': $route.name === 'Playlists' || $route.name === 'ListEdit', 'disabled': $route.name === 'Login'}"
+        >
 					<img src="@/assets/imgs/sidebar/menuplaceholder.svg">
 					<div>Плейлисты</div>
-				</router-link>
-				<router-link :class="{'active': $route.name === 'Stuff'}" :to="{name: 'Stuff'}">
+        </div>
+        <div class="a"
+          @click="goRoute('Stuff')"
+          :class="{'active': $route.name === 'Stuff' || $route.name === 'Directory', 'disabled': $route.name === 'Login'}"
+        >
 					<img src="@/assets/imgs/sidebar/menuplaceholder.svg">
 					<div>Материалы</div>
-				</router-link>
-				<router-link :class="{'active': $route.name === 'Headline'}" :to="{name: 'Headline'}">
+        </div>
+        <div class="a"
+          @click="goRoute('Headline')"
+         :class="{'active': $route.name === 'Headline', 'disabled': $route.name === 'Login'}"
+        >
 					<img src="@/assets/imgs/sidebar/menuplaceholder.svg">
 					<div>Бегущая строка</div>
-				</router-link>
+        </div>
 			</div>
 		</div>
 		<div class="disk" :class="{toggled}">
@@ -46,7 +62,9 @@
 
 <script>
 import { eraseCookie, formatBytes, getCookie } from '@/api/func'
+import AreYouSureModal from './PlayList/AreYouSureModal.vue'
 export default {
+  components: { AreYouSureModal },
   name: 'Sidebar',
   data: () => ({
     total_space: 0,
@@ -54,12 +72,33 @@ export default {
     loggedUser: false,
     toggled: false,
     username: "",
+    routeName: "",
+    openWarning: false,
   }),
+  props: {
+    isedit: Boolean,
+  },
   mounted() {
+    console.log('isedit', this.isedit)
     this.getUser()
     this.getSpace()
   },
   methods: {
+    nextPage(name) {
+      this.openWarning = false
+      console.log('name', name)
+      this.$emit('saveplaylist', false)
+      this.$router.push({name: name})
+    },
+    goRoute(name) {
+      console.log('isedit', this.isedit)
+      if(this.isedit) {
+        this.routeName = name
+        this.openWarning = true
+        return
+      }
+      this.$router.push({name: name})
+    },
     getUser() {
       this.username = getCookie('user')
       let session_id = getCookie('session_id')
@@ -72,9 +111,9 @@ export default {
     toggleSidebar() {
       this.toggled = !this.toggled
     },
-    async logout() {
+    logout() {
       eraseCookie('session_id')
-      eraseCookie('name')
+      eraseCookie('user')
       this.loggedUser = false
       this.$router.push({name: 'Login'})
     },
@@ -83,7 +122,6 @@ export default {
         let lists = await res.json()
         this.total_space = formatBytes(lists.total)
         this.media_space = formatBytes(lists.media)
-        console.log('space', (lists.free / lists.total))
         let root = document.querySelector(':root');
         let spaced = (lists.free / lists.total);
         root.style.setProperty('--spaced', spaced+'%');
@@ -94,6 +132,9 @@ export default {
   watch:{
     $route (){
       this.getUser()
+    },
+    isedit() {
+      console.log(this.isedit)
     }
   } 
 }
@@ -118,7 +159,7 @@ export default {
       display: block;
     }
     .container .sidebar .disk.toggled {
-      bottom: 45px;
+      bottom: -5px;
     }
     .container .sidebar.toggled .head b {
       display: block;
@@ -182,7 +223,7 @@ export default {
   .sidebar-menu {
     padding: 5px 5px 0px 5px;
   }
-  .sidebar-menu > a {
+  .sidebar-menu > .a {
     color: #CCC;
     padding: 15px;
     display: block;
@@ -190,19 +231,20 @@ export default {
     display: flex;
     align-items: center;
     text-decoration: none;
+    cursor: pointer;
   }
-  .sidebar-menu > a > img {
+  .sidebar-menu > .a > img {
     margin-right: 20px;
     opacity: .4;
   }
-  .sidebar-menu > a.active > img {
+  .sidebar-menu > .a.active > img {
     opacity: 1;
   }
-	.sidebar .content a.active {
+	.sidebar .content .a.active {
     color: white;
     font-weight: bold;
 	}
-	.sidebar .content a:hover {
+	.sidebar .content .a:hover {
 		background-color: #20262c;
 	}
   .disk_avalible {

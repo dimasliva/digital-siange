@@ -3,10 +3,11 @@
     <div  @click.stop class="modal">
       <div class="head">
         <span>{{title}}</span>
+        <img @click="closeModal" src="@/assets/imgs/playlist/delete.svg"/>
       </div>
       <div class="content">
         <div class="img_container" style="text-align: center; background-color: #000;">
-	      	<img v-if="image === true" src="@/assets/imgs/error.jpeg" style="max-width: 100%"/>
+	      	<img v-if="image === true" src="@/assets/imgs/solid-black.jpg" style="max-width: 100%"/>
 	      	<img v-else id="previewImage" style="max-width: 100%" @error="changeSrc()"
           :src="`/thumb/${item.id}.png?${this.item.id}.png?rnd=${rnd}`" class="">
 	      </div>
@@ -38,7 +39,6 @@ export default {
     setInterval(() => {
       this.rnd = Math.ceil(Math.random()*100000)
     }, 4000)
-    console.log('name', this.name)
   },
   unmounted() {
     clearInterval(() => {
@@ -69,7 +69,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-y: scroll;
+    overflow-y: hidden;
   }
   .modal {
     max-width: 480px;
@@ -98,6 +98,12 @@ export default {
     padding: 10px;
     font-size: 1.3em;
     font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+  }
+  .head img {
+    filter: invert(1);
+    cursor: pointer;
   }
   .modal .footer {
     width: 100%;

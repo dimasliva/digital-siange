@@ -4,12 +4,13 @@
       <div class="modal" @click.stop>
         <div class="head">
           <span>{{title}}</span>
+          <img @click="closeModal" src="@/assets/imgs/playlist/delete.svg"/>
         </div>
         <div class="content">
           <input v-model="name" />
         </div>
         <div class="footer">
-          <button @click="saveModal" class="btn">Добавить</button>
+          <button @click="saveModal" class="btn">{{this.namebtn ? this.namebtn : 'Добавить'}}</button>
           <button @click="closeModal" class="btn">Закрыть</button>
         </div>
       </div>
@@ -28,13 +29,27 @@ export default {
   props: {
     title: String,
     item: Object,
+    namebtn: String,
   },
   mounted() {
     if(this.item) {
       this.name = this.item.name
     }
+    document.addEventListener('keydown', e => {
+      this.keyPressed(e)
+    })
+  },
+  unmounted() {
+    document.removeEventListener('keydown', e => {
+      this.keyPressed(e)
+    })
   },
   methods: {
+    keyPressed(e) {
+      if(e.key === 'Enter') {
+        this.saveModal()
+      }
+    },
     saveModal() {
       this.$emit('savemodal', this.name, this.item)
     },
@@ -56,7 +71,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-y: scroll;
+    overflow-y: hidden;
   }
   .modal_container .modal {
     max-width: 480px;
@@ -78,6 +93,12 @@ export default {
     padding: 10px;
     font-size: 1.3em;
     font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+  }
+  .head img {
+    filter: invert(1);
+    cursor: pointer;
   }
   .modal .footer {
     width: 100%;

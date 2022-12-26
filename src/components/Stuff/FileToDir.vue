@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { getFiles } from '@/api/func'
+import { getFiles } from '@/api/stuff/func'
 
 export default {
   name: 'FileToDir',
@@ -47,7 +47,8 @@ export default {
   methods: {
     async getLists() {
       const resp = await getFiles(null)
-      this.folders = resp.filter(val => {
+      
+      this.folders = resp.result.filter(val => {
         if(val.isFolder) {
           return true
         }
@@ -55,6 +56,7 @@ export default {
       this.lists = resp
     },
     moveFolder(folder) {
+      console.log('selectedFolder', folder)
       this.$emit('movefolder', folder)
     },
     closeModal() {
@@ -75,7 +77,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-y: scroll;
+    overflow-y: hidden;
 }
 .ds-minidialog {
     max-width: 480px;
@@ -111,6 +113,7 @@ export default {
     padding: 5px 10px 5px 5px;
     box-sizing: border-box;
     border-bottom: 1px solid #DDD;
+    cursor: pointer;
 }
 .list-item-icon {
     background-image: url(@/assets/imgs/folder.svg);

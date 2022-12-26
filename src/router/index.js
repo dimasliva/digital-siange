@@ -1,13 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import ActiveLists from '@/views/ActiveLists.vue'
+import Players from '@/views/Players.vue'
 import Devices from '@/views/Devices.vue'
-import Lists from '@/views/Lists.vue'
 import Stuff from '@/views/Stuff.vue'
 import ListEdit from '@/views/ListEdit.vue'
 import Directory from '@/views/Directory.vue'
 import Player from '@/views/Player.vue'
 import Headline from '@/views/Headline.vue'
 import Login from '@/views/Login.vue'
+import Playlists from '@/views/Playlists.vue'
 
 const routes = [
   {
@@ -16,9 +16,9 @@ const routes = [
     component: Login
   },
   {
-    path: '/activity',
-    name: 'PlayLists',
-    component: ActiveLists
+    path: '/players',
+    name: 'Players',
+    component: Players
   },
   {
     path: '/device',
@@ -26,9 +26,9 @@ const routes = [
     component: Devices
   },
   {
-    path: '/lists',
-    name: 'Lists',
-    component: Lists
+    path: '/playlists',
+    name: 'Playlists',
+    component: Playlists
   },
   {
     path: '/stuff',

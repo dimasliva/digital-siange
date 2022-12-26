@@ -1,0 +1,13 @@
+version: '3.7'
+
+services:
+  net_player-frontend:
+    container_name: net_player-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    external_links:
+      - digitalsignage
+    network_mode: bridge
+    ports:
+      - '${SERVER_PORT}:443'

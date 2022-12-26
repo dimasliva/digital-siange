@@ -1,9 +1,11 @@
 <template>
-  <div class="modal_window">
+  <div class="modal_window" @click="closeModal">
+    <WarningModal :isActive="openError" :text="warningText"/>
     <div class="modal_container">
-      <div class="modal">
+      <div class="modal" @click.stop>
         <div class="head">
           <span>{{title}}</span>
+          <img @click="closeModal" src="@/assets/imgs/playlist/delete.svg"/>
         </div>
         <div class="content">
           <div class="edit_task">
@@ -11,28 +13,32 @@
             <div class="time_container">
               <div class="select_time">
                 <span>Выполнять</span>
-                <select v-if="period === null" v-model="period">
+                <select v-if="doMain" v-model="period">
                   <option :value="null">Как основную задачу</option>
+                  <option :value="false">По расписанию</option>
                   <option :value="true">В течении периода</option>
                 </select>
                 <select v-else v-model="period">
                   <option :value="true">В течении периода</option>
+                  <option :value="false">По расписанию</option>
                 </select>
               </div>
               <div v-if="period !== null" class="select_time">
                 <span>Повторять</span>
-                <select>
-                  <option>Не повторять</option>
-                  <option>Каждый час</option>
+                <select v-model="repeat">
+                  <option :value="false">Не повторять</option>
+                  <option :value="true">Каждый час</option>
                 </select>
               </div>
               <div v-if="period !== null" class="select_time">
                 <span>Начало в</span>
-                <input type="time" v-model="time_start" />
+                <input v-if="!repeat" type="time" v-model="time_start" />
+                <input v-else type="number" v-model="time_start" />
               </div>
               <div v-if="period" class="select_time">
                 <span>Завершение в</span>
-                <input type="time" v-model="time_end" />
+                <input v-if="!repeat" type="time" v-model="time_end" />
+                <input v-else type="number" v-model="time_end" />
               </div>
             </div>
 
@@ -58,13 +64,11 @@
         </div>
       </div>
     </div>
-    <div class="modal_bg" @click="closeModal">
-
-    </div>
   </div>
 </template>
 
 <script>
+import WarningModal from '../WarningModal.vue'
 
 export default {
   name: 'EditWeb',
@@ -75,52 +79,203 @@ export default {
     period: false,
     url: "",
     method: "",
+    count_main_tasks: 0,
+    doMain: true,
+    openWarning: false,
+    warningText: "",
+    error: false,
+    repeat: false,
+    openError: false
   }),
   props: {
     title: String,
     index: Number,
     item: Object,
+    schedules: Array,
+  },
+  components: {
+    WarningModal
   },
   mounted() {
-    for (let index = 0; index < this.item.schedule.length; index++) {
-      if(index === 0) {
-        this.time_start = this.item.schedule[0].hour + ":" + this.item.schedule[0].minute
-      } else {
-        this.time_end = this.item.schedule[1].hour + ":" + this.item.schedule[1].minute
-        this.period = true
+    if(this.item.schedule) {
+      for (let index = 0; index < this.item.schedule.length; index++) {
+        if(index === 0) {
+          if(this.item.schedule[0].hour === '*') {
+            this.time_start = this.item.schedule[0].minute
+            this.repeat = true
+          } else {
+            this.time_start = this.item.schedule[0].hour + ":" + this.item.schedule[0].minute
+          }
+        } else {
+          if(this.item.schedule[1].hour === '*') {
+            this.time_end = this.item.schedule[1].minute
+            this.period = true
+          } else {
+            this.time_end = this.item.schedule[1].hour + ":" + this.item.schedule[1].minute
+            this.period = true
+          }
+        }
+      }
+    } else {
+      this.period = null
+    }
+    
+    this.schedules.map(val => {
+      if(!val.schedule) {
+        this.count_main_tasks += 1
+      }
+    })
+    if(this.count_main_tasks > 0) {
+      this.doMain = false
+      if(!this.item.schedule) {
+        this.doMain = true
       }
     }
     this.url = this.item.resource
     this.method = this.item.method
-      console.log('method', this.method)
   },
   methods: {
+    isValidHttpUrl(string) {
+      let url;
+      try {
+        url = new URL(string);
+      } catch (_) {
+        return false;
+      }
+      return url.protocol === "http:" || url.protocol === "https:";
+    },
     saveModal() {
       let data
-      let start = this.time_start.split(':')
-      let start_time = {hour: start[0], minute: start[1]}
+      if(this.method !== 'sleep') {
+        if(this.url.length === 0) {
+          this.warningText = 'Заполните поле "Url"'
+          this.openError = true
+          setTimeout(() => {
+            this.openError = false
+          }, 2000)
+          return  
+        } 
+        if(!this.isValidHttpUrl(this.url)) {
+          this.warningText = 'Неверно заполнено поле "Url"'
+          this.openError = true
+          setTimeout(() => {
+            this.openError = false
+          }, 2000)
+          return  
+        }
+      }
+      if(this.period === null) {
+        data = {
+          schedule: null,
+          resource: this.url,
+        }
+        this.$emit('savemodal', data, this.index)
+        return
+      }
 
-      console.log('start_time', start_time)
       if(this.period) {
+        if(this.repeat) {
+          if(this.time_start < this.time_end) {
+            data = {
+              schedule: [{hour: '*', minute: this.time_start}, {hour: '*', minute: this.time_end}],
+              resource: this.url,
+            }
+            this.$emit('savemodal', data, this.index)
+            return
+          }
+          this.warningText = 'Поле "Начало в" больше поля "Завершение в"'
+          this.openError = true
+          setTimeout(() => {
+            this.openError = false
+          }, 2000)
+          return          
+        }
         let end = this.time_end.split(':')
+        end.map(time => {
+          if(time.length < 2) {
+            this.warningText = 'Запонлите поле "Завершение в"'
+            this.openWarning = true
+            setTimeout(() => {
+              this.openWarning = false
+            }, 2000)
+            this.error = true
+          }
+        })
         let end_time = {hour: end[0], minute: end[1]}
 
         data = {
-          time: [start_time, end_time],
+          schedule: [start_time, end_time],
           resource: this.url,
         }
       } else {
+        if(this.repeat) {
+            data = {
+              schedule: [{hour: '*', minute: this.time_start}],
+              resource: this.url,
+            }
+            this.$emit('savemodal', data, this.index)
+            return
+        }
+        let start = this.time_start.split(':')
+        start.map(time => {
+          if(time.length < 2) {
+            this.warningText = 'Запонлите поле "Начало в"'
+            this.openError = true
+            setTimeout(() => {
+              this.openError = false
+            }, 2000)
+            this.error = true
+          }
+        })
+        let start_time = {hour: start[0], minute: start[1]}
         data = {
-          time: [start_time],
+          schedule: [start_time],
           resource: this.url,
         }
       }
-
-      this.$emit('savemodal', data, this.index)
+      if(!this.error) {
+        this.$emit('savemodal', data, this.index)
+      }
     },
     closeModal() {
-      this.$emit('closeweb')
+      this.$emit('closemodal')
     },
+  },
+  watch: {
+    repeat() {
+      if(this.repeat) {
+        if(this.time_start.length !== undefined) {
+          this.time_start = 0
+        }
+        if(this.time_end.length !== undefined) {
+          this.time_end = 0
+        }
+      }
+    },
+    time_start() {
+      if(this.repeat) {
+        if(this.time_start > 59) {
+          this.time_start = 59
+          this.warningText = 'Введите число в диапазоне 0-59'
+          this.openError = true
+          setTimeout(() => {
+            this.openError = false
+          }, 2000)
+        }
+      }
+    },
+    time_end() {
+      if(this.repeat) {
+        if(this.time_end > 59) {
+          this.time_end = 59
+          this.warningText = 'Введите число в диапазоне 0-59'
+          this.openError = true
+          setTimeout(() => {
+            this.openError = false
+          }, 2000)
+        }
+      }
+    }
   },
 }
 </script>
@@ -155,6 +310,7 @@ export default {
     outline: none;
   }
   .edit_task {
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -191,16 +347,30 @@ export default {
     padding: 5px;
   }
   .modal_container {
-    position: absolute;
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -40%);
-    width: 960px;
+    z-index: 3;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: hidden;
+  }
+  .modal_container .modal {
+    max-width: 960px;
+    width: 100%;
+    max-height: 90%;
+    overflow: hidden;
     background: #EFEFEF;
     border: 1px solid #080808;
     box-sizing: border-box;
-    z-index: 2;
-    color: white;
+    box-shadow: 0 0 8px rgb(0 0 0 / 30%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
   }
   .modal .head {
     background: #555;
@@ -209,6 +379,12 @@ export default {
     padding: 10px;
     font-size: 1.3em;
     font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+  }
+  .head img {
+    filter: invert(1);
+    cursor: pointer;
   }
   .modal .footer {
     width: 100%;
@@ -219,6 +395,7 @@ export default {
   }
   .modal .content {
     width: 100%;
+    height: 100%;
   }
   .select_time input, .select_time select {
     width: 100%;
@@ -227,17 +404,6 @@ export default {
     height: 40px;
   }
 
-  .modal_bg{
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    background-color: black;
-    opacity: .7;
-    z-index: 1;
-  }
   .footer .btn {
     font: 400 10pt "Open Sans", "Segoe UI", "Liberation Sans", sans-serif;
     background: #888;
@@ -251,5 +417,8 @@ export default {
     cursor: pointer;
     display: inline-block;
     text-decoration: none;
-}
+  }
+  .btn:hover {
+    background: #797979;
+  }
 </style>

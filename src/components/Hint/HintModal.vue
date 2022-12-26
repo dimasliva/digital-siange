@@ -4,14 +4,14 @@
       <div class="modal" @click.stop>
         <div class="head">
           <div class=""></div>
-          <h1 class="title">{{currentPage === 0 ? 'Как пользоваться? &#129300;'
+          <h1 class="title">
+            {{currentPage === 0 ? 'Как пользоваться? &#129300;'
             : currentPage === 1 ? 'Вкладка Устройства? &#128525;'
             : currentPage === 2 ? 'Вкладка Материалы &#129488;'
             : 'Редактирование задач &#128526;'}}</h1>
           <img @click="closeModal" src="@/assets/imgs/playlist/delete.svg"/>
         </div>
         <div class="content">
-          
           <div v-if="currentPage === 0" class="page page_one">
             <div class="desc">
               <span>
@@ -85,10 +85,10 @@
           
         </div>
         <div class="footer">
-          <button v-show="currentPage > 0" @click="currentPage = currentPage - 1" class="btn btn_page">
+          <button :class="{'hideBtn': currentPage > 0}" @click="currentPage = currentPage - 1" class="btn btn_page">
             Назад
           </button>
-          <button v-show="currentPage < 3" @click="currentPage = currentPage + 1" class="btn btn_page">
+          <button :class="{'hideBtn': currentPage < 3}" @click="currentPage = currentPage + 1" class="btn btn_page">
             Далее
           </button>
         </div>
@@ -105,6 +105,10 @@ export default {
     openList: false,
     currentPage: 0,
     name: "",
+    size_window: {
+      width: 0,
+      height: 0,
+    }
   }),
   props: {
     title: String
@@ -113,6 +117,8 @@ export default {
     document.removeEventListener('keyup', this.swipePage)
   },
   mounted() {
+    this.size_window.width = screen.width
+    this.size_window.height = screen.height
     document.addEventListener('keyup', this.swipePage)
   },
   methods: {
@@ -137,6 +143,20 @@ export default {
 }
 </script>
 <style scoped>
+  @media (max-height: 624px) {
+    .content .hint_img {
+      height: 325px;
+    }
+    .page_four .hint_img, .page_third .desc .hint_img {
+      height: 305px;
+    }
+  }
+  @media (max-height: 762px) {
+    .content .modal_container .modal {
+      margin-bottom: 0%;
+      justify-content: flex-start;
+    }
+  }
   @media (max-width: 414px) {
     .page_two .desc .hint_img {
       height: 110px;
@@ -158,8 +178,7 @@ export default {
       height: 100%;
     }
     .modal_window .modal_container .modal {
-      max-height: 100%;
-      height: 100%;
+      height: auto;
       padding: 20px;
       overflow-x: hidden;
     }
@@ -192,6 +211,10 @@ export default {
     transition: 0.3s;
     cursor: pointer;
   }
+  .btn {
+    opacity: 0;
+    pointer-events: none;
+  }
   .footer .btn:hover {
     background-color: #25c686;
   }
@@ -216,7 +239,8 @@ export default {
   }
   .modal_container .modal {
     width: var(--width-hint);
-    overflow-y: hidden;
+    height: 90%;
+    overflow-y: scroll;
     background: #fff;
     border: 1px solid #080808;
     box-sizing: border-box;
@@ -227,8 +251,9 @@ export default {
     flex-direction: column;
     margin-bottom: 1%;
     padding: 30px 50px;
+    padding-bottom: 50px;
     border-radius: 10px;
-    justify-content: space-between;
+    justify-content: flex-start;
   } 
   .modal .footer {
     width: 100%;
@@ -236,7 +261,9 @@ export default {
     justify-content: center;
     align-items: center;
     padding: 5px 5px 5px 0px;
-    text-align: right;
+    position: absolute;
+    bottom: 0%;
+    left: 0%;
   } 
   .modal .head {
     color: #FFF;
@@ -264,8 +291,10 @@ export default {
   }
   .modal .content {
     width: 100%;
-    height: 710px;
+    overflow-x: hidden;
+    max-height: 74vh;
     color: #080808;
+    overflow-y: auto;
   }
   .head .title {
     color: #080808;
@@ -279,5 +308,9 @@ export default {
     margin-top: 10px;
     margin-left: 20px;
     font-family: Arial, Helvetica, sans-serif;
+  }
+  .hideBtn {
+    pointer-events: all;
+    opacity: 1;
   }
 </style>

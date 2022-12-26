@@ -1,11 +1,12 @@
 <template>
 	<div class="main_content">
+    <WarningModal :isActive="openWarning" :text="text_warning"/>
     <CreateModal v-if="openList" :title="'Добавить новую группу'" :item="{name: ''}" @savemodal="createGroup" @closemodal="openList = false"/>
     <SelectScheduleModal v-if="openSchedule" :item="clickedItem" @savemodal="saveSchedule" @closemodal="openSchedule = false"/>
-    <CreateModal v-if="openEditName" :title="'Сменить имя'" :item="clickedItem" @savemodal="changeName" @closemodal="openEditName = false"/>
+    <CreateModal v-if="openEditName" :namebtn="'Сохранить'" :title="'Сменить имя'" :item="clickedItem" @savemodal="changeName" @closemodal="openEditName = false"/>
     <ScreenModal v-if="openImage" :title="'Снимок экрана'" :item="clickedItem" @savemodal="saveName" @closemodal="openImage = false"/>
     <StatusModal v-if="openStatus" :item="clickedItem" @openschedule="toSchedule" @savemodal="saveStatus" @closemodal="openStatus = false"/>
-    <AddPlayerModal v-if="openAddGroup" :item="clickedItem" @savemodal="getGroups" @closemodal="openAddGroup = false"/>
+    <AddPlayerModal v-if="openAddGroup" :item="clickedItem" @savemodal="saveAddPlayer" @closemodal="openAddGroup = false"/>
     <DeleteModal v-if="openDelGroup" :title="'Удаление группы'" @savemodal="delGroup" :text="'Вы действительно хотите удалить группу '" :item="clickedItem" @closemodal="openDelGroup = false"/>
     <Header :btn="'Создать группу'" @openlist="openList = true"/>
 		<div class="content">
@@ -15,11 +16,11 @@
             <div class="group_name" @click="hideGroup(list)">
               <td colspan="6">
                 <div class="group">
-                  <span>{{list.name}}</span>
+                  <span>{{list.name === 'Все' ? 'Все устройства' : list.name}}</span>
                   <div class="list-item-buttons">
-                    <button @click.stop="selectSchedule(list.players, 'playlist')" type="button" title="Установить плейлист">
+                    <!-- <button @click.stop="selectSchedule(list.players, 'playlist')" type="button" title="Установить плейлист">
                       <img src="@/assets/imgs/device/schedule.svg">
-                    </button>
+                    </button> -->
                     <button @click.stop="addPlaylist(list)" v-if="list.name !== 'Все'" type="button" title="Добавить в группу">
                       <img src="@/assets/imgs/device/add.svg">
                     </button>
@@ -40,9 +41,19 @@
                   <div :class="{'active': player.status !== 'offline'}" class="device">
                     <span class="title">{{player.name}}</span>
                     <span class="number">{{player.status === 'live' ? 'Online' : player.status}}</span>
-                    <span class="number">{{player.scheduleName}}</span>
+                    <div>
+                      <span class="number">
+                        {{player.scheduleName}} 
+                      </span>
+                      <span v-if="player.nextScheduleName" class="number">
+                        {{` (Устанавливается ${player.nextScheduleName})`}}
+                      </span>
+                      <span v-if="player.lastError" class="error">
+                        {{` Не удалось применить расписание ${player.lastError.request.scheduleName} (${player.lastError.error})`}}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                 </div>
               </td>
               <td class="btns" colspan="3">
                 <div class="list-item-buttons">
@@ -66,15 +77,18 @@ import Header from '@/components/Header.vue'
 import SelectScheduleModal from '@/components/Devices/SelectScheduleModal.vue'
 import ScreenModal from '@/components/Playing/ScreenModal.vue'
 import StatusModal from '@/components/Devices/StatusModal.vue'
-import { delGroup, getGroups, getPlayers, removeCmd } from '@/api/func'
+import { getPlayers, removeCmd } from '@/api/func'
 import AddPlayerModal from '@/components/Devices/AddPlayerModal.vue'
 import DeleteModal from '@/components/PlayList/DeleteModal.vue'
-import { groupExclude } from '@/api/stuff/func'
+import { getGroups, createGroup, groupExclude, delGroup } from '@/api/devices/func'
+import { playerRename } from '@/api/players/func'
+import WarningModal from '@/components/WarningModal.vue'
 
 export default {
-  components: { CreateModal, Header, SelectScheduleModal, ScreenModal, StatusModal, AddPlayerModal, DeleteModal },
+  components: { CreateModal, Header, SelectScheduleModal, ScreenModal, StatusModal, AddPlayerModal, DeleteModal, WarningModal },
   name: 'ActiveLists',
   data: () => ({
+    text_warning: null,
     lists: [],
     players: [],
     playersId: [],
@@ -86,20 +100,42 @@ export default {
 		openAddGroup: false,
     openDelGroup: false,
     clickedItem: {},
+    intervalData: null,
+    doneInterval: false,
+    openWarning: false,
   }),
   mounted() {
-    this.getPlayes()
+    if(!this.doneInterval) {
+      this.getPlayes()
+    }
+    this.intervalData = setInterval(() => {
+      this.getPlayes()
+      this.doneInterval = true
+    }, 5000);
+  },
+  unmounted() {
+    clearInterval(this.intervalData)
   },
   methods: {
-    async saveSchedule() {
+    saveAddPlayer() {
+      this.openAddGroup = false
       this.getGroups()
+    },
+    async saveSchedule() {
+      this.getPlayes()
       this.openSchedule = false
     },
     async delSchedule(player) {
+      console.log('player', player)
       let res = await groupExclude(player.group, player.id)
-      if(res.status === 'ok') {
-        this.getGroups()
-      }
+			if(res.status !== 'ok') {
+        this.text_warning = "Не удалось убрать устройство"
+        setTimeout(() => {
+          this.text_warning = null
+        }, 2000);
+				return
+			}
+      this.getGroups()
     },
     addPlaylist(group) {
       this.openAddGroup = true
@@ -110,21 +146,24 @@ export default {
       this.openSchedule = true
     },
     async changeName(name, item) {
-      await fetch("/api/players/rename", {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: name,
-          player: item.id,
-        })
-			}).then(() => {
-        this.openEditName = false
-				this.clickedItem = null
-        this.getPlayes()
-      })
+      let res = await playerRename(item.id, name)
+			if(res.status !== 'ok') {
+        this.openWarning = true
+        this.text_warning = "Ошибка сервера: Не удалось переименовать устройство"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
+				return
+			}
+      this.openEditName = false
+			this.clickedItem = null
+      this.getPlayes()
+      
+      this.openWarning = true
+      this.text_warning = "Устройство успешно переименовано!"
+      setTimeout(() => {
+        this.openWarning = false
+      }, 2000);
     },
     selectSchedule(list, type) {
       this.clickedItem = list
@@ -143,11 +182,24 @@ export default {
       this.players.map(val => {
         this.playersId.push(val.id)
       })
-      console.log('players', this.players)
       this.getGroups()
     },
     async getGroups() {
-      this.lists = await getGroups()
+      let res = await getGroups()
+			if(res.status !== 'ok') {
+        this.openWarning = true
+        this.text_warning = "Ошибка сервера: Не удалось получить группы"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
+				return
+			}
+      this.lists = res.result
+      for (let index = 0; index < this.lists.length; index++) {
+        this.lists[index].players = this.lists[index].players.filter(y => {
+          return y.id !== "2f383c5a758307c2"
+        }) 
+      }
       if(this.playersId.length > 0) {
         this.lists.map(val => {
           val.players = val.players.map(player => {
@@ -160,9 +212,6 @@ export default {
         })
       }
 
-      console.log("groups", this.lists)
-      this.openList = false
-      this.openAddGroup = false
     },
     hideGroup(list) {
       list.active = !list.active 
@@ -172,18 +221,22 @@ export default {
 			this.getGroups()
     },
     async createGroup(name) {
-      await fetch("/api/groups/create", {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          "name": name,
-        })
-      }).then(() => {
-        this.getGroups()
-      })
+      let res = await createGroup(name)
+			if(res.status !== 'ok') {
+        this.openWarning = true
+        this.text_warning = "Ошибка сервера: Не удалось переименовать устройство"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
+				return
+			}
+      this.openList = false
+      this.getGroups()
+      this.openWarning = true
+      this.text_warning = "Группа успешно создалась!"
+      setTimeout(() => {
+        this.openWarning = false
+      }, 2000);
     },
     openDelete(item) {
       this.clickedItem = item
@@ -197,6 +250,8 @@ export default {
         this.getGroups()
       }
     }
+  },
+  computed: {
   },
 }
 </script>
@@ -399,5 +454,9 @@ export default {
     display: flex;
     align-items: center;
     padding-left: 15px;
+  }
+  .devices .device .error {
+    color: red;
+    font-weight: 400;
   }
 </style>

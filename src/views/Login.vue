@@ -1,6 +1,7 @@
 <template>
 	<div class="main_content">
     <Header />
+    <WarningModal :isActive="openWarning" :text="warningText"/>
     <LoginModal v-if="openLogin" @savemodal="authUser" @closemodal="openLogin = false"/>
 		<div class="content">
       <div class="header">Доступ ограничен</div>
@@ -12,16 +13,20 @@
 <script>
 import Header from '@/components/Header.vue'
 import LoginModal from '@/components/LoginModal.vue'
-import { getCookie, setCookie } from '@/api/func'
+import { getCookie } from '@/api/func'
+import WarningModal from '@/components/WarningModal.vue'
 
 export default {
   name: 'Login',
   components: {
     Header,
     LoginModal,
+    WarningModal,
   },
   data: () => ({
-    openLogin: false
+    openLogin: false,
+    openWarning: false,
+    warningText: "",
   }),
   mounted() {
     console.log()
@@ -31,25 +36,32 @@ export default {
   },
   methods: {
     async authUser(user) {
-      console.log(user)
       let formData = new FormData()
       for(let name in user) {
         formData.append(name, user[name]);
       }
-      await fetch("/login", {
+      fetch("/login", {
         method: 'POST',
+       credentials: 'same-origin',
         body: formData
-      }).then(() => {
-        setCookie('session_id', Math.ceil(Math.random()*100000), 1)
-        setCookie('user', user.name, 1)
+      }).then((res) => {
+        if(res.status === 302) {
+        }
         let session_id = getCookie('session_id')
         let username = getCookie('user')
-        console.log(session_id)
-        console.log(username)
         if(session_id && username) {
           this.$router.push({name: 'PlayLists'})
+          return
+        } else {
+          this.warningText = 'Не верный логин или пароль'
+          this.openWarning = true
+
+          setTimeout(() => {
+          this.warningText = 'Не верный логин или пароль'
+          this.openWarning = false
+          }, 2000)
         }
-      })
+       });
     }
   },
   watch: {

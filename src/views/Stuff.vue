@@ -1,13 +1,23 @@
 <template>
-	<div class="main_content" @click="unSelect">
-    <CreateFile v-if="openCreateFile" :folder="null" @savefile="saveFile" :title="'Загрузка материалов'" @closemodal="openCreateFile = false"/>
+	<div class="main_content">
+    <WarningModal :isActive="openWarning" :text="text_warning"/>
+    <CreateFile v-if="openCreateFile" :loading="isLoading" :folder="null" @savefile="saveFile" :title="'Загрузка материалов'" @closemodal="openCreateFile = false"/>
     <CreateModal v-if="openCreateDir" :title="'Введите имя для новой папки'" @savemodal="createDir" @closemodal="openCreateDir = false"/>
-    <CreateModal v-if="openEdit" :title="'Введите новое имя'" :item="clickedItem" @savemodal="saveName" @closemodal="openEdit = false"/>
-    <CreateModal v-if="openDirEdit" :title="'Введите новое имя'" :item="clickedItem" @savemodal="saveDirName" @closemodal="openDirEdit = false"/>
+    <CreateModal v-if="openEdit" :title="'Введите новое имя'" :namebtn="'Сохранить'" :item="clickedItem" @savemodal="saveName" @closemodal="openEdit = false"/>
+    <CreateModal v-if="openDirEdit" :title="'Введите новое имя'" :namebtn="'Сохранить'" :item="clickedItem" @savemodal="saveDirName" @closemodal="openDirEdit = false"/>
     <OpenImage v-if="openImg" :title="'Просмотр'" :item="clickedItem" @savemodal="saveName" @closemodal="openImg = false"/>
     <FileToDir v-if="openMoveDir" :items="lists" @movefolder="moveToFolder" @closemodal="openMoveDir = false"/>
+    <DeleteModal v-if="openRemoveModal" @savemodal="delImg" @closemodal="openRemoveModal = false" :title="'Удаление'" :text="removeModalText" :item="clickedItem"/>
     <Header :btn="'Загрузить'" :btntwo="'Создать папку'" @openlist="openCreateFile = true" @opensecond="openCreateDir = true"/>
-		<div id="area" class="content">
+    <div v-if="statusFiles.length > 0">
+      <div v-for="status in statusFiles" :key="status">
+        <div class="statusbar" style="display: block;">
+	      	<span id="conversionProgress">Обработано файлов - 
+            <div style="display: flex">{{status[0]}}<progress style="margin-left: auto" max="100" :value="status[1]">{{status[1]}}</progress></div></span>
+	      </div>
+      </div>
+    </div>
+    <div id="area" class="content">
       <div class="img_container">
         <!-- Folders -->
         <div class="list-item" 
@@ -25,7 +35,7 @@
           </div>
           <div class="list-item-buttons">
             <button @click.stop="editTitle(folder)" title="Переименовать"><img src="@/assets/imgs/playlist/rename.svg"></button>
-            <button @click="delImg(folder)" title="Удалить"><img src="@/assets/imgs/playlist/delete.svg"/></button>
+            <button @click.stop="openDelImg(folder)" title="Удалить"><img src="@/assets/imgs/playlist/delete.svg"/></button>
           </div>
         </div>
         <!-- Items -->
@@ -40,7 +50,18 @@
             <input @click.stop="selectImg(list)" type="checkbox" v-model="list.active" :style="{'visibility': !list.isFolder ? 'visible' : 'hidden'}">
           </div>
           <div @click="openImage(list)" class="list-item-icon" style="cursor: pointer;">
-            <img style="width: 50px;" v-if="list.id.split('.')[list.id.split('.').length - 1] === 'pdf'" src="@/assets/imgs/stuff/document.png"/>
+            <img style="width: 50px;" 
+              v-if="list.id.split('.')[list.id.split('.').length - 1] === 'xlsx'" 
+              src="@/assets/imgs/stuff/document-xlsx.png"
+            />
+            <img style="width: 50px;" 
+              v-else-if="list.id.split('.')[list.id.split('.').length - 1] === 'pptx'" 
+              src="@/assets/imgs/stuff/document-pptx.png"
+            />
+            <img style="width: 50px;" 
+              v-else-if="list.id.split('.')[list.id.split('.').length - 1] === 'pdf'" 
+              src="@/assets/imgs/stuff/document.png"
+            />
             <img 
                 v-else-if="list.id.split('.')[list.id.split('.').length - 1] === 'png'" 
                 :src="`/media/${list.id}`" @error="changeSrc(list)"/>
@@ -53,13 +74,15 @@
           <div class="list-item-buttons">
             <button @click.stop="openImage(list)" title="Просмотр"><img src="@/assets/imgs/stuff/preview.svg"></button>
             <button @click.stop="editTitle(list)" title="Переименовать"><img src="@/assets/imgs/playlist/rename.svg"></button>
-            <button @click="delImg(list)" title="Удалить"><img src="@/assets/imgs/playlist/delete.svg"/></button>
+            <button @click.stop="downloadFile(list)" class="download" title="Скачать"><img src="@/assets/imgs/stuff/download.svg"/></button>
+            <button @click.stop="openDelImg(list)" title="Удалить"><img src="@/assets/imgs/playlist/delete.svg"/></button>
           </div>
         </div>
       </div>
       <div class="btns" v-if="btnsShow">
-        <button @click="delImg()" class="btn">Удалить</button>
+        <button @click="downloadFile()" class="btn">Скачать</button>
         <button @click="fileToDir()" class="btn">Переместить</button>
+        <button @click="delImg()" class="btn">Удалить</button>
       </div>
 		</div>
 	</div>
@@ -71,34 +94,59 @@ import CreateModal from '@/components/CreateModal.vue'
 import FileToDir from '@/components/Stuff/FileToDir.vue'
 import OpenImage from '@/components/Stuff/OpenImage.vue'
 import {formatBytes} from "@/api/playlist/func"
+import { delFile, delFolder, downloadFile, getStatusFiles } from '@/api/func'
+import DeleteModal from '@/components/PlayList/DeleteModal.vue'
+import WarningModal from '@/components/WarningModal.vue'
+import { fileRename, fileUpload, folderRename, makeDir, moveToFolder, getFiles } from '@/api/stuff/func'
 
 export default {
   name: 'Stuff',
   data: () => ({
     lists: [],
     items: [],
-    btnsShow: false,
     selectedImg: [],
+    statusFiles: [],
     nameChange: "",
     clickedItem: {},
+    intervalStatus: null,
+    btnsShow: false,
     openCreateFile: false,
     openCreateDir: false,
     openEdit: false,
     openDirEdit: false,
     openImg: false,
     openMoveDir: false,
+    openRemoveModal: false,
+    isLoading: false,
+    openWarning: false,
+    text_warning: "",
   }),
   components: {
     Header,
     CreateFile,
     CreateModal,
     FileToDir,
-    OpenImage
+    OpenImage,
+    DeleteModal,
+    WarningModal,
   },
   mounted() {
     this.getLists()
+    this.getStatusFiles()
   },
   methods: {
+    async downloadFile(item = null) {
+      if(this.selectedImg.length !== 0) {
+        this.selectedImg.map(async val => {
+          val.active = false
+          await downloadFile(val)
+        })
+        this.selectedImg = []
+        this.btnsShow = false
+        return
+      }
+      await downloadFile(item)
+    },
     changeSrc(list) {
       console.log('error', list.id)
     },
@@ -107,34 +155,29 @@ export default {
       this.selectedImg.unshift({id: itemId})
       this.moveToFolder({id: folderId})
       this.btnsShow = false
-      console.log('onDrop', e)
-      console.log('onDrop', folderId)
     },
     onDragStart(e, item) {
       e.dataTransfer.dropEffect = 'move'
       e.dataTransfer.effectAllowed = 'move'
       e.dataTransfer.setData('itemId', item.id.toString())
-      console.log('onDragStart', item)
     },
     async moveToFolder(folder) {
       let id = []
       this.selectedImg.map(val => {
         id.push(val.id)
       })
-      await fetch("/api/files/move_multiple", {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          "folder": folder.id,
-          "files": id,
-        })
-      }).then(() => {
+      console.log('folder', folder)
+      let res = await moveToFolder(folder.id, id)
+      if(res.status !== 'ok') {
+        this.text_warning = "Не удалось переместить файлы в папку"
+        this.openWarning = true
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000)
+      }
+      console.log('res', res)
         this.openMoveDir = false  
         this.getLists()
-      })
     },
     fileToDir() {
       this.openMoveDir = true
@@ -164,8 +207,9 @@ export default {
         this.openFolder(image.id)
         return
       }
-      this.openImg = true
       this.clickedItem = image
+      console.log('image', image)
+      this.openImg = true
       console.log(image)
     },
     editTitle(list) {
@@ -180,63 +224,104 @@ export default {
       this.$router.push(`/dir/${id}`)
     },
     async createDir(title) {
-      await fetch("/api/files/makedir", {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          "name": title,
-          "parent": null,
-        })
-      }).then(() => {
+      let res = await makeDir(title, null)
+      if(res.status === 'error') {
+        let res = await makeDir(title)
+        if(res.status === 'fail') {
+          this.text_warning = "Произошла ошибка при создании папки: " + title
+          this.openWarning = true
+          setTimeout(() => {
+            this.openWarning = false
+          }, 2000);
+        }
+      }
         this.openCreateDir = false  
         this.getLists()
-      })
+    },
+    async getStatusFiles() {
+      this.statusFiles = await getStatusFiles()
+      if(this.statusFiles.length > 0) {
+        let count_status_files = this.statusFiles.length
+        this.intervalStatus = setInterval(async () => {
+          this.statusFiles = await getStatusFiles()
+          if(count_status_files > this.statusFiles) {
+            this.getLists()
+            count_status_files = this.statusFiles.length
+          }
+          if(this.statusFiles.length === 0) {
+            this.getLists()
+            clearInterval(this.intervalStatus)
+          }
+        }, 5000);
+      }
     },
     async saveFile(file) {
-      await fetch("/api/files/upload", {
-        method: 'POST',
-        body: file
-      }).then(() => {
+      this.isLoading = true
+      console.log('isLoading', this.isLoading)
+      let res = await fileUpload(file)
+      if(res.status !== 'ok') {
+        this.openWarning = true
+        this.text_warning = "Не удалось загрузить файл"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
+        return
+      }
+        this.openWarning = true
+        this.text_warning = "Файл успешно загружен!"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
         this.openCreateFile = false  
+        this.isLoading = false
+        this.getStatusFiles()
         this.getLists()
-      })
     },
     async saveName(title, list) {
-      await fetch("/api/files/rename", {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          "id": list.id,
-          "name": title,
-        })
-      }).then(() => {
+      let res = await fileRename(list.id, title)
+      if(res.status !== 'ok') {
+        this.openWarning = true
+        this.text_warning = "Ошибка сервера: Не удалось переименовать файл"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
+        return
+      }
         this.openEdit = false
+        this.openWarning = true
+        this.text_warning = "Файл переименован"
         this.getLists()
-      })
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
     },
     async saveDirName(title, list) {
-      await fetch("/api/files/renamedir", {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          "id": list.id,
-          "name": title,
-        })
-      }).then(() => {
+      let res = await folderRename(list.id, title)
+      if(res.status !== 'ok') {
+        this.openWarning = true
+        this.text_warning = "Ошибка сервера: Не удалось переименовать папку"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
+        return
+      }
         this.openDirEdit = false
+        this.openWarning = true
+        this.text_warning = "Папка переименована"
         this.getLists()
-      })
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
     },
-    async delImg(item) {
+    openDelImg(item) {
+      this.removeModalText = "Вы действительно хотите удалить"
+      this.clickedItem = item
+      this.openRemoveModal = true
+    },
+    async delImg(item = null) {
+      this.clickedItem = null
+      this.openRemoveModal = false
+      
       if(this.selectedImg.length > 0) {
         this.selectedImg.map(async list => {
           let i = this.lists.indexOf(list)
@@ -244,61 +329,43 @@ export default {
             this.lists.splice(i, 1)
             console.log("i", i)
           }
-          await fetch("/api/files/del", {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              "filename": list.id,
-            })
-          }).then(() => {
+          let resp = await delFile(list.id)
+          if(resp.status === 'ok') {
             this.getLists()
             return
-          })
+          }
         })
       } else if(item && !item.isFolder) {
-        await fetch("/api/files/del", {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            "filename": item.id,
-          })
-        }).then(() => {
+        let resp = await delFile(item.id)
+        if(resp.status === 'ok') {
           this.getLists()
           return
-        })
+        }
       } else if(item.isFolder) {
-        await fetch("/api/files/removedir", {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            "id": item.id,
-          })
-        }).then(() => {
+        let resp = await delFolder(item.id)
+        if(resp.status === 'ok') {
           this.getLists()
           return
-        })
+        }
       }
     },
     async getLists() {
-      await fetch("/api/files/list").then(async res => {
-        let lists = await res.json()
-        this.lists = lists.result
+      let res = await getFiles()
+      if(res.status !== 'ok') {
+        this.openWarning = true
+        this.text_warning = "Ошибка сервера: Не удалось получить файлы"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
+        return
+      }
+        this.lists = res.result
         this.btnsShow = false
         this.items = this.lists.filter(val => {
         if(!val.isFolder) {
           val.size = formatBytes(val.size) 
           return true
         }
-        })
       })
     },
   },
@@ -390,8 +457,8 @@ export default {
 		cursor: pointer;
     transition: .3s all ease-in-out;
 	}
-  .btn:first-child {
-    margin-right: 5px;
+  .btn:nth-child(2) {
+    margin:0px 5px;
   }
   .btn:hover {
     background: rgb(121, 121, 121);
@@ -408,4 +475,12 @@ export default {
   .list-item-buttons {
     display: flex;
   }
+  .download {
+    width: 34px;
+  }
+.statusbar {
+    padding: 8px 12px;
+    background-color: #BCD;
+    display: none;
+}
 </style>

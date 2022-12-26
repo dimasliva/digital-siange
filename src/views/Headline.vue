@@ -5,7 +5,7 @@
     <CreateModal v-if="openEditAll" :title="'Установить текст на всех устройствах'" @savemodal="updateAllSubs" @closemodal="openEditAll = false"/>
 		<div class="content">
 			<div class="table" width="100%">
-				<div class="item" @click="editTicker(list)" v-for="list in lists" :key="list.id">
+				<div class="item" @click="editTicker(list)" v-for="list in sotredLists" :key="list.id">
 					<div class="td list_icon"></div>
           <div class="title-list">
             <span v-show="!list.edit">{{list.name}}</span>
@@ -21,8 +21,9 @@
 
 <script>
 import Header from '@/components/Header.vue'
-import {getSubs, updateSub, updateAllSubs} from "@/api/func"
+import {getSubs, updateSub} from "@/api/func"
 import CreateModal from '@/components/CreateModal.vue'
+import { updateTickers } from '@/api/playlist/func'
 
 export default {
   name: 'Headline',
@@ -42,7 +43,7 @@ export default {
   methods: {
     async updateAllSubs(content) {
       console.log('content', content)
-      const resp = await updateAllSubs(content)
+      const resp = await updateTickers(content)
       this.openEditAll = false
       if(resp.status === 'ok') {
         this.getLists()
@@ -64,6 +65,11 @@ export default {
     async getLists() {
 			this.lists = await getSubs()
     },
+  },
+  computed: {
+    sotredLists() {
+      return this.lists.filter(x => x.id !== '2f383c5a758307c2')
+    }
   },
 }
 </script>

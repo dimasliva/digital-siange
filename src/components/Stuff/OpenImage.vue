@@ -8,13 +8,13 @@
         </div>
         <div class="content">
           <div class="img_container" style="text-align: center; background-color: #000;">
-		      	<img v-if="format === 'pdf'" id="previewImage" style="max-width: 100%" src="@/assets/imgs/stuff/preview-unavail-16x9.png" class="">
-		      	<video v-else-if="item.id.split('.')[item.id.split('.').length - 1] === 'mp4'" id="previewVideo" style="max-width: 100%" controls="" class="is-hidden" :src="`/media/${name}`"></video>
-		      	<img v-else id="previewImage" style="max-width: 100%" :src="`/media/${name}`" class="">
+		      	<img v-if="item.id.split('.')[item.id.split('.').length - 1] === 'pdf'" id="previewImage" style="max-width: 100%" src="@/assets/imgs/stuff/preview-unavail-16x9.png" class="">
+		      	<video v-else-if="item.id.split('.')[item.id.split('.').length - 1] === 'mp4'" id="previewVideo" style="max-width: 100%" controls="" class="is-hidden" :src="`/media/${item.id}`"></video>
+		      	<img v-else id="previewImage" style="max-width: 100%" :src="`/media/${item.id}`" class="">
 		      </div>
         </div>
         <div class="footer">
-          <button @click.stop="downloadFile" download class="btn">Сохранить на компьютер</button>
+          <button @click.stop="downloadFile" download class="btn">Скачать</button>
         </div>
       </div>
     </div>
@@ -22,6 +22,7 @@
 </template>
 
 <script>
+import { downloadFile } from '@/api/func'
 
 export default {
   name: 'OpenImage',
@@ -34,33 +35,16 @@ export default {
     item: String,
   },
   mounted() {
-    this.format = this.item.id.split('.')[this.last_i]
-    console.log('format', this.format)
-    this.name = this.item.id
   },
   methods: {
     async downloadFile() {
-      const image = await fetch(this.item.id.split('.')[this.last_i] === 'mp4' ? '/media/' + this.name : '/thumb/' + this.name + '.jpg')
-      const imageBlog = await image.blob();
-      const imageUrl = URL.createObjectURL(imageBlog)
-
-      const anchor = document.createElement("a")
-      console.log(imageUrl)
-      anchor.href = imageUrl
-      anchor.download = this.name
-
-      document.body.append(anchor)
-      anchor.click()
-      document.body.removeChild(anchor)
+      await downloadFile(this.item)
     },
     closeModal() {
       this.$emit('closemodal')
     },
   },
   computed: {
-    last_i() {
-      return this.item.id.split('.').length - 1
-    }
   }
 }
 </script>
@@ -76,7 +60,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-y: scroll;
+    overflow-y: hidden;
   }
   .img_container {
     width: 100%;

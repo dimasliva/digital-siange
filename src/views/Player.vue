@@ -1,7 +1,7 @@
 <template>
 	<div class="main_content">
     <!-- Modal windows -->
-    <Header :title="'Редактирование плейлиста '"/>
+    <Header :title="'Статус медиаплеера '+device.name"/>
     <div class="basic-container">
       <div class="row">
         <div class="col">Идентификатор</div>
@@ -13,7 +13,7 @@
       </div>
       <div class="row">
         <div class="col">Последний запрос</div>
-        <div class="col" id="playerLast">{{device.lastacc}} (сейчас)</div>
+        <div class="col" id="playerLast">{{device.lastacc}} ({{lastRequest}})</div>
       </div>
       <div class="row">
         <div class="col">IP-адрес медиаплеера</div>
@@ -21,7 +21,8 @@
       </div>
       <div class="row">
         <div class="col">Выполняемая задача</div>
-        <div class="col" id="telemetryProc">{{stats.process_executable}} – {{stats.process_status}}</div>
+        <div class="col" id="telemetryProc">
+          {{stats.process_executable}} <span v-if="stats.process_status">– {{stats.process_status}}</span></div>
       </div>
       <div class="row">
         <div class="col">Информация о функционировании устройства</div>
@@ -76,7 +77,7 @@
 
 <script>
 import Header from '@/components/Header.vue'
-import {getPlayerStatus} from "@/api/func"
+import {DateDifference, DateFormatter, getPlayerStatus} from "@/api/func"
 
 export default {
   name: 'Player',
@@ -88,10 +89,19 @@ export default {
     device: {},
     stats: {},
     command: "",
+    lastRequest: "",
+    intervalPlayer: null,
   }),
   mounted() {
     this.getPlayerStatus()
     this.getCmdLogs()
+    this.intervalPlayers = setInterval(() => {
+      this.getCmdLogs()
+      this.getPlayerStatus()
+    }, 5000);
+  },
+  unmounted() {
+    clearInterval(this.intervalPlayers)
   },
   methods: {
     async setCommand() {
@@ -105,7 +115,7 @@ export default {
           player: this.$route.params.id,
           command: this.command,
         })
-			}).then(async res => {
+			}).then(() => {
         this.command = ""
         this.getPlayerStatus()
         this.getCmdLogs()
@@ -150,10 +160,11 @@ export default {
     },
     async getPlayerStatus() {
       const resp = await getPlayerStatus(this.$route.params.id)
+      this.lastRequest = await DateDifference(resp.device.lastacc)
+      resp.device.lastacc = DateFormatter(resp.device.lastacc)
       this.device = resp.device
       this.stats = resp.stats
       this.drawCanvase()
-      console.log('resp', resp)
     },
     async getCmdLogs() {
       await fetch("/api/players/remotecmd/list", {
@@ -210,6 +221,11 @@ export default {
 }
 </script>
 <style scoped>
+@media (max-width: 925px) {
+  .basic-container .row > .col:nth-child(1) {
+    width: 220px;
+  }
+}
 	.main_content {
 		width: 100%;
 	}

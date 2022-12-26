@@ -1,11 +1,22 @@
 <template>
 	<div class="main_content" >
+    <WarningModal :isActive="openWarning" :text="text_warning"/>
     <CreateFile v-if="openCreateFile" :folder="this.$route.params.id" @savefile="saveFile" :title="'Загрузка материалов'" @closemodal="openCreateFile = false"/>
     <CreateModal v-if="openCreateDir" :title="'Введите имя для новой папки'" @savemodal="createDir" @closemodal="openCreateDir = false"/>
+    <CreateModal v-if="openEdit" :title="'Введите новое имя'" :namebtn="'Сохранить'" :item="clickedItem" @savemodal="saveName" @closemodal="openEdit = false"/>
     <FileToDir v-if="openMoveDir" @movefolder="moveToFolder" @closemodal="openMoveDir = false"/>
     <OpenImage v-if="openImg" :title="'Просмотр'" :item="clickedItem" @savemodal="saveName" @closemodal="openImg = false"/>
+    <DeleteModal v-if="openRemoveModal" @savemodal="delFile" @closemodal="openRemoveModal = false" :title="'Удаление'" :text="removeModalText" :item="clickedItem"/>
     <Header :btn="'Загрузить'" :btntwo="'Создать папку'" @openlist="openCreateFile = true" @opensecond="openCreateDir = true"/>
-		<div class="content">
+    <div v-if="statusFiles.length > 0">
+      <div v-for="status in statusFiles" :key="status">
+        <div class="statusbar" style="display: block;">
+	      	<span id="conversionProgress">Обработано файлов - 
+            <div style="display: flex">{{status[0]}}<progress style="margin-left: auto" max="100" :value="status[1]">{{status[1]}}</progress></div></span>
+	      </div>
+      </div>
+    </div>
+    <div class="content">
       <div class="img_container">
         <div class="list-item"
           @click="backFolder()"
@@ -33,9 +44,9 @@
           :key="i"
         >
           <div class="list-item-checkbox">
-            <input @click.stop="selectImg(list)" type="checkbox" v-model="list.active" :style="{'visibility': !list.isFolder ? 'visible' : 'hidden'}">
+            <input @click="selectImg(list)" type="checkbox" v-model="list.active" :style="{'visibility': !list.isFolder ? 'visible' : 'hidden'}">
           </div>
-          <div @click="openImage(list)" class="list-item-icon" style="cursor: pointer;">
+          <div @click.stop="openImage(list)" class="list-item-icon" style="cursor: pointer;">
             <img style="width: 50px;" v-if="list.id.split('.')[list.id.split('.').length - 1] === 'pdf'" src="@/assets/imgs/stuff/document.png"/>
             <img 
                 v-else-if="list.id.split('.')[list.id.split('.').length - 1] === 'png'" 
@@ -49,13 +60,15 @@
           <div class="list-item-buttons">
             <button @click.stop="openImage(list)" v-if="!list.isFolder" title="Просмотр"><img src="@/assets/imgs/stuff/preview.svg"></button>
             <button @click.stop="editTitle(list)" title="Переименовать"><img src="@/assets/imgs/playlist/rename.svg"></button>
-            <button title="Удалить" @click="delFile(list)"><img src="@/assets/imgs/playlist/delete.svg"/></button>
+            <button @click.stop="downloadFile(list)" class="download" title="Скачать"><img src="@/assets/imgs/stuff/download.svg"/></button>
+            <button @click.stop="openDelImg(list)" title="Удалить"><img src="@/assets/imgs/playlist/delete.svg"/></button>
           </div>
         </div>
       </div>
       <div class="btns" v-if="btnsShow">
-        <button @click="delFiles()" class="btn">Удалить</button>
+        <button @click="downloadFile()" class="btn">Скачать</button>
         <button @click="openMoveDir = true" class="btn">Переместить</button>
+        <button @click="delFiles()" class="btn">Удалить</button>
       </div>
 		</div>
 	</div>
@@ -65,10 +78,12 @@
 import Header from "@/components/Header.vue"
 import CreateFile from '@/components/CreateFile.vue'
 import CreateModal from '@/components/CreateModal.vue'
-import {delFile, moveToFolder} from "@/api/stuff/func"
-import {getFiles} from "@/api/func"
+import {delFile, getFiles, fileRename, fileUpload, makeDir, moveToFolder} from "@/api/stuff/func"
+import {downloadFile, formatBytes, getStatusFiles} from "@/api/func"
 import FileToDir from '@/components/Stuff/FileToDir.vue'
 import OpenImage from '@/components/Stuff/OpenImage.vue'
+import DeleteModal from '@/components/PlayList/DeleteModal.vue'
+import WarningModal from '@/components/WarningModal.vue'
 
 export default {
   name: 'Directory',
@@ -76,6 +91,8 @@ export default {
     lists: [],
     btnsShow: false,
     selectedImg: [],
+    statusFiles: [],
+    intervalStatus: null,
     editName: false,
     nameChange: "",
     changedImg: {},
@@ -84,18 +101,62 @@ export default {
     openCreateDir: false,
     openMoveDir: false,
     openImg: false,
+    openEdit: false,
+    removeModalText: "",
+    clickedItem: null,
+    openRemoveModal: false,
+    isLoading: false,
+    openWarning: false,
+    text_warning: "",
   }),
   components: {
     Header,
     CreateFile,
     CreateModal,
     FileToDir,
-    OpenImage
+    OpenImage,
+    DeleteModal,
+    WarningModal,
   },
   mounted() {
     this.getLists()
+    this.getStatusFiles()
   },
   methods: {
+    async getStatusFiles() {
+      this.statusFiles = await getStatusFiles() 
+      if(this.statusFiles.length > 0) {
+        let count_status_files = this.statusFiles.length
+        this.intervalStatus = setInterval(async () => {
+          this.statusFiles = await getStatusFiles()
+          if(count_status_files > this.statusFiles) {
+            this.getLists()
+            count_status_files = this.statusFiles.length
+          }
+          if(this.statusFiles.length === 0) {
+            this.getLists()
+            clearInterval(this.intervalStatus)
+          }
+        }, 5000);
+      }
+    },
+    async downloadFile(item = null) {
+      if(this.selectedImg.length !== 0) {
+        this.selectedImg.map(async val => {
+          val.active = false
+          console.log('val', val)
+          await downloadFile(val)
+        })
+        this.selectedImg = []
+        this.btnsShow = false
+        return
+      }
+      await downloadFile(item)
+    },
+    editTitle(list) {
+      this.clickedItem = list
+      this.openEdit = true
+    },
     openImage(image) {
       if(image.isFolder) {
         this.backFolder()
@@ -117,61 +178,69 @@ export default {
       e.dataTransfer.setData('itemId', item.id.toString())
     },
     backFolder() {
-      this.$router.go(-1)
+      this.$router.push({name: 'Stuff'})
     },
     async moveToFolder(folder) {
       let id = []
-      console.log('folder', folder)
-      console.log('selectedImg', this.selectedImg)
       if(this.selectedImg.length > 0) {
         this.selectedImg.map(val => {
           id.push(val.id)
         })
       }
-      await moveToFolder(folder ? folder.id : null, id)
+      let res = await moveToFolder(folder ? folder.id : null, id)
+      if(res.status !== 'ok') {
+        this.text_warning = "Не удалось переместить файлы в папку"
+        this.openWarning = true
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000)
+      }
       this.getLists()
       this.btnsShow = false
       this.openMoveDir = false  
     },
     async createDir(title) {
-      await fetch("/api/files/makedir", {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          "name": title,
-          "parent": null,
-        })
-      }).then(() => {
+      let res = await makeDir(title, this.$route.params.id)
+      if(res.status === 'error') {
+        let res = await makeDir(title)
+        if(res.status === 'fail') {
+          this.text_warning = "Произошла ошибка при создании папки: " + title
+          this.openWarning = true
+          setTimeout(() => {
+            this.openWarning = false
+          }, 2000);
+        }
+      }
         this.openCreateDir = false  
         this.getLists()
-      })
     },
     async saveFile(file) {
-      await fetch("/api/files/upload", {
-        method: 'POST',
-        body: file
-      }).then(() => {
+      this.isLoading = true
+      let res = await fileUpload(file)
+      if(res.status !== 'ok') {
+        this.openWarning = true
+        this.text_warning = "Не удалось загрузить файл"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
+        return
+      }
         this.openCreateFile = false  
+        this.isLoading = false
+        this.getStatusFiles()
         this.getLists()
-      })
     },
-    async saveName(list) {
-      await fetch("/api/files/rename", {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          "id": list.id,
-          "name": this.nameChange,
-        })
-      }).then(() => {
-        list.edit = false
-        this.editName = false
+    async saveName(name, item) {
+      let res = await fileRename(item.id, name)
+      if(res.status !== 'ok') {
+        this.openWarning = true
+        this.text_warning = "Ошибка сервера: Не удалось переименовать файл"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
+        return
+      }
+        this.openEdit = false
         this.lists.map(val => {
           val.edit = false
           val.active = false
@@ -179,31 +248,14 @@ export default {
         this.selectedImg = []
         this.btnsShow = false
         this.getLists()
-      })
-    },
-    async editImg(list) {
-      if(list) {
-        this.changedImg = list
-        this.nameChange = list.name
-        list.edit = true
-      }
-      this.editName = true
-      this.selectedImg.map(val => {
-        this.changedImg = val
-        this.nameChange = val.name
-        val.edit = true
-      })
-        this.btnsShow = false
-      let input = document.querySelectorAll("#changeInput")
-      this.$nextTick(() => {
-        for (let index = 0; index < input.length; index++) {
-          input[index].focus()
-        }
-      })
+        this.openWarning = true
+        this.text_warning = "Файл переименован"
+        setTimeout(() => {
+          this.openWarning = false
+        }, 2000);
     },
     selectImg(list) {
       if(!this.editName) {
-        console.log(2)
         if(list.active) {
           list.active = false
           const i = this.lists.findIndex(e => e.active === true);
@@ -222,18 +274,34 @@ export default {
         this.btnsShow = true
       }
     },
-    async delFile(id) {
-      await delFile(id)
+    openDelImg(item) {
+      this.removeModalText = "Вы действительно хотите удалить"
+      this.clickedItem = item
+      this.openRemoveModal = true
+    },
+    async delFile(item) {
+      await delFile(item.id)
       this.getLists()
     },
     async delFiles() {
+      console.log('selectedImg', this.selectedImg)
       this.selectedImg.map(async list => {
         await delFile(list.id)
       })
-      this.getLists()
+      this.btnsShow = false
+      setTimeout(() => {
+        this.getLists()
+      }, 200)
     },
     async getLists() {
-      this.lists = await getFiles(this.$route.params.id)
+      let res = await getFiles(this.$route.params.id)
+      this.lists = res.result
+      this.lists.filter(val => {
+        if(!val.isFolder) {
+          val.size = formatBytes(val.size) 
+          return true
+        }
+      })
     },
   },
 }
@@ -315,8 +383,8 @@ export default {
 		cursor: pointer;
     transition: .3s all ease-in-out;
 	}
-  .btn:first-child {
-    margin-right: 5px;
+  .btn:nth-child(2) {
+    margin:0px 5px;
   }
   .btn:hover {
     background: rgb(121, 121, 121);
@@ -332,5 +400,8 @@ export default {
   }
   .list-item-buttons {
     display: flex;
+  }
+  .download {
+    width: 34px;
   }
 </style>

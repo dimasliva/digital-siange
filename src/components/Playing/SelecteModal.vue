@@ -1,10 +1,11 @@
 <template>
-<div id="masterStep1" class="ds-dialog-fog">
-    <WarningModal v-if="openWarning" :text="warning_text"/>
-		<div class="ds-dialog ds-dialog-master">
+<div id="masterStep1" class="ds-dialog-fog" @click="closeModal">
+    <WarningModal :isActive="openWarning" :text="warning_text"/>
+		<div class="ds-dialog ds-dialog-master" @click.stop>
 			<div class="dialog-header">{{currentStep === 0 ? 'Шаг 1 – выберите плееры' 
         : currentStep === 1 ? 'Шаг 2 – выберите плейлист для плееров' 
         : 'Шаг 3 – Укажите дополнительные опции'}}
+        <img @click="closeModal" src="@/assets/imgs/playlist/delete.svg"/>
       </div>
 			<div class="dialog-body" style="display: flex; flex-direction: row">
 				<div class="master-steps">
@@ -13,8 +14,8 @@
           <div :class="{'current-step': currentStep === 2}">Дополнительно</div>
 				</div>
 				<div v-if="currentStep !== 2" class="master-body">
-          <div v-if="currentStep === 0" id="masterPlayersList" style="overflow: auto; flex-grow: 1;">
-            <div @click="toSelected(list)" v-for="list in lists" :key="list.id" class="list-item">
+          <div v-if="currentStep === 0" id="masterPlayersList" style="overflow-y: auto; flex-grow: 1;">
+            <div @click="toSelected(list)" v-for="list in sortedLists" :key="list.id" class="list-item">
               <div class="list-item-checkbox">
                 <input type="checkbox" :checked="selectedList.includes(list)" style="visibility: visible;">
               </div>
@@ -74,7 +75,7 @@
 </template>
 
 <script>
-import WarningModal from '../PlayList/WarningModal.vue'
+import WarningModal from '../WarningModal.vue'
 
 export default {
   components: { WarningModal },
@@ -123,6 +124,8 @@ export default {
     saveMaster() {
       this.getGroups()
         this.saveAssign()
+      this.$emit('savemodal')
+
       if(this.additional.ticker) {
         this.saveMulticast()
       }
@@ -141,7 +144,7 @@ export default {
         },
         body: JSON.stringify({
           "content": this.ticker,
-          "players": [this.selectedList],
+          "players": this.selectedList,
         })
       }).then(() => {
         this.ticker = ""
@@ -155,7 +158,7 @@ export default {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          "players": [this.selectedList],
+          "players": this.selectedList,
           "schedule": this.cickedPlaylist.id,
         })
       })
@@ -218,6 +221,11 @@ export default {
     },
   },
   computed: {
+		sortedLists() {
+			return this.lists.filter(x => {
+				return x.id !== '2f383c5a758307c2'
+			})
+		}
   }
 }
 </script>
@@ -261,7 +269,7 @@ th, td {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow-y: scroll;
+  overflow-y: hidden;
 }
 .ds-dialog {
   max-width: 960px;
@@ -283,6 +291,12 @@ th, td {
   padding: 10px;
   font-size: 1.3em;
   font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+}
+.dialog-header img {
+  filter: invert(1);
+  cursor: pointer;
 }
 .ds-dialog > .dialog-body {
   flex-grow: 1;

@@ -1,10 +1,10 @@
 <template>
   <div class="container">
-    <Sidebar/>
+    <Sidebar @saveplaylist="savePlaylist" :isedit="editedPlaylist"/>
     <div class="content">
       <HintModal v-if="openHint" @closemodal="openHint = false"/>
       <Hint @openhint="openHint = true" />
-      <router-view/>
+      <router-view @saveplaylist="savePlaylist"/>
     </div>
   </div>
 </template>
@@ -13,7 +13,6 @@
 import Sidebar from '@/components/Sidebar.vue'
 import Hint from './components/Hint/Hint.vue'
 import HintModal from './components/Hint/HintModal.vue'
-import { getCookie } from './api/func'
 
 export default {
   name: 'App',
@@ -23,7 +22,16 @@ export default {
   },
   data: () => ({
     openHint: false,
+    editedPlaylist: false
   }),
+  mounted(){
+  },
+  methods: {
+    savePlaylist(isEdit) {
+      this.editedPlaylist = isEdit
+      console.log('savePlaylist', isEdit)
+    }
+  }
 }
 </script>
 <style>

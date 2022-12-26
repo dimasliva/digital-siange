@@ -34,7 +34,7 @@ export default {
       {icon: "document.svg", title: "Документ", method: "doc",},
       {icon: "type-web.svg", title: "Веб-страница", method: "web",},
       {icon: "type-stream.svg", title: "Видеопоток", method: "stream",},
-      {icon: "type-monitor.svg", title: "Спящий режим", method: "monitor",},
+      {icon: "type-monitor.svg", title: "Спящий режим", method: "sleep",},
     ]
   }),
   props: {
@@ -113,7 +113,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-y: scroll;
+    overflow-y: hidden;
     width: 100%;
   }
   .modal_container .modal {

@@ -9,3 +9,8 @@ export function formatBytes(bytes, decimals = 2) {
 
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
+export async function getSchedules() {
+  let res = await fetch("/api/schedules/list")
+  let resp = await res.json()
+  return resp
+}

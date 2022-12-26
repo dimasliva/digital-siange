@@ -19,13 +19,15 @@
       </div>
         
       <div class="microdialog_section">Последний запрос</div>
-      <div class="microdialog_row" id="playerSummaryLastmod">{{device.lastacc}} (сейчас)</div>
+      <div class="microdialog_row" id="playerSummaryLastmod">{{device.lastacc}} ({{lastRequest}})</div>
         
       <div class="microdialog_section">IP-адрес медиаплеера</div>
       <div class="microdialog_row" id="playerSummaryAddress">{{stats.ip_address}}</div>
         
       <div class="microdialog_section">Выполняемая задача</div>
-      <div class="microdialog_row" id="playerSummaryActivity">{{stats.process_executable}} – {{stats.process_status}}</div>
+      <div class="microdialog_row" id="playerSummaryActivity">
+        {{stats.process_executable}} <span v-if="stats.process_status">– {{stats.process_status}}</span>
+      </div>
       <div class="microdialog_section">Бегущая строка</div>
       <div class="microdialog_row" style="display: flex; align-items: center;">
         <input type="text" v-model="ticker" placeholder="Введите бегущую строку" id="playerSummaryHeadline" style="margin-right: 1em;">
@@ -51,7 +53,7 @@
 </template>
 
 <script>
-import {updateSub, getPlayerStatus, getSubs} from "@/api/func"
+import {updateSub, getPlayerStatus, getSubs, DateFormatter, DateDifference} from "@/api/func"
 
 export default {
   name: 'SelectScheduleModal',
@@ -60,6 +62,7 @@ export default {
     stats: {},
     volume: "",
     ticker: "",
+    lastRequest: "",
     openSchedule: false,
     subsId: []
   }),
@@ -111,8 +114,12 @@ export default {
     },
     async getStats() {
       const resp = await getPlayerStatus(this.item.id)
+      console.log('resp.device', resp.device)
+      this.lastRequest = await DateDifference(resp.device.lastacc)
+      resp.device.lastacc = DateFormatter(resp.device.lastacc)
       console.log('getStats', resp)
       this.device = resp.device
+
       this.stats = resp.stats
       console.log('device', this.device)
     },
@@ -155,7 +162,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow-y: scroll;
+  overflow-y: hidden;
 }
 .ds-minidialog {
   max-width: 480px;

@@ -61,7 +61,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow-y: scroll;
+    overflow-y: hidden;
 }
 .ds-minidialog {
     max-width: 480px;

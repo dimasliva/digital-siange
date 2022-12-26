@@ -54,6 +54,9 @@ export default {
   computed: {
     avaliblePlayers() {
       return this.lists.filter(val => {
+        if(val.id === '2f383c5a758307c2') {
+          return false
+        }
         let i = this.playersId.indexOf(val.id)
         if(i === -1) {
           return true
@@ -80,7 +83,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow-y: scroll;
+  overflow-y: hidden;
 }
 .ds-minidialog {
   max-width: 480px;

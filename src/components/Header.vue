@@ -2,7 +2,7 @@
 	<div class="head">
     <div class="btns">
       <span>{{title}}</span>
-	    <button @click="btnClicked" v-if="btn" :class="{'active': issave}" class="btn btn-primary">{{btn}}</button>
+	    <button @click="btnClicked" v-if="btn" :class="{'active': issave}" id="nobtn" class="btn btn-primary">{{btn}}</button>
 	    <button @click="btntwoClicked" v-if="btntwo" :class="{'active': issave}" class="btn btn-info">{{btntwo}}</button>
     </div>
 	</div>
@@ -16,6 +16,9 @@ export default {
     btn: String,
     btntwo: String,
     issave: Boolean
+  },
+  mounted() {
+
   },
   methods: {
     btnClicked() {

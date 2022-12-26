@@ -2,7 +2,7 @@
 <div @click="closeModal" id="scheduleDelete" class="ds-dialog-fog">
 	<div class="ds-minidialog" @click.stop>
 		<div class="dialog-header">{{title}}</div>
-		<div class="dialog-body dialog-message dialog-delete">{{text}}  <span id="deletingSchedule">{{item.name}}</span></div>
+		<div class="dialog-body dialog-message dialog-delete">{{text}} <span id="deletingSchedule">{{item.name}}</span></div>
 		<div class="dialog-footer">
     	<button class="btn" @click="saveModal">Удалить</button>
 	   	<button class="btn" @click="closeModal">Закрыть</button>
@@ -46,7 +46,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow-y: scroll;
+  overflow-y: hidden;
 }
 .ds-minidialog {
     max-width: 480px;

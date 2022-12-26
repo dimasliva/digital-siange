@@ -3,6 +3,7 @@ module.exports = defineConfig({
     css: {
         extract: false,
     },
+    assetsDir: "vueassets",
     configureWebpack: {
         optimization: {
             splitChunks: false,
@@ -10,6 +11,6 @@ module.exports = defineConfig({
     },
     transpileDependencies: true,
     devServer: {
-      proxy: "http://localhost:8008"
+      proxy: "http://localhost:8008/"
     }
 })
